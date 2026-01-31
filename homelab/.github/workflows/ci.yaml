@@ -1,0 +1,27 @@
+name: validate-manifests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Build manifests
+        run: |
+          mkdir -p dist
+          kustomize build --enable-helm clusters/homelab > dist/all.yaml
+
+      - name: Kubeconform
+        uses: yannh/kubeconform-action@v1
+        with:
+          files: dist/all.yaml
+          summary: true
+          strict: true
+          ignore_missing_schemas: true

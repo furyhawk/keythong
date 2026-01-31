@@ -1,0 +1,4 @@
+controller:
+  tolerations: []
+speaker:
+  tolerations: []
