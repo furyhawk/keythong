@@ -36,16 +36,16 @@ A modular, production-style Kubernetes homelab stack with GitOps-friendly struct
 
 ## Deploy the stack
 
-Apply the full stack with Kustomize:
+Apply the full stack with Kustomize (server-side apply avoids CRD annotation size limits):
 
 ```
-kustomize build --enable-helm clusters/homelab | kubectl apply -f -
+kustomize build --enable-helm clusters/homelab | kubectl apply --server-side -f -
 ```
 
 Optional helper script:
 
 ```
-./scripts/kustomize-build.sh | kubectl apply -f -
+./scripts/apply-homelab.sh
 ```
 
 ## Accessing services

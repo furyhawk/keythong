@@ -2,3 +2,6 @@ controller:
   tolerations: []
 speaker:
   tolerations: []
+
+crds:
+  validationFailurePolicy: Ignore

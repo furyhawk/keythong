@@ -4,6 +4,8 @@ resources:
   - ../../base
   - ipaddresspool.yaml
   - l2advertisement.yaml
+patches:
+  - path: webhook-failurepolicy.yaml
 helmCharts:
   - name: metallb
     repo: https://metallb.github.io/metallb
@@ -11,3 +13,4 @@ helmCharts:
     releaseName: metallb
     namespace: metallb-system
     valuesFile: values.yaml
+    includeCRDs: true
