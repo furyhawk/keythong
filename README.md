@@ -34,12 +34,55 @@ A modular, production-style Kubernetes homelab stack with GitOps-friendly struct
 3. Adjust Traefik settings in [infra/traefik/overlays/homelab/values.yaml](infra/traefik/overlays/homelab/values.yaml).
 4. Review Argo CD settings in [infra/argocd/overlays/homelab/values.yaml](infra/argocd/overlays/homelab/values.yaml).
 
-## Deploy the stack
+## kind on localhost (MetalLB access)
 
-Apply the full stack with Kustomize (server-side apply avoids CRD annotation size limits):
+MetalLB works on kind only if the IP pool is inside the kind Docker network and your host can route to that subnet.
+
+### 1) Choose a pool inside the kind network
+
+Find the kind network subnet:
 
 ```
-kustomize build --enable-helm clusters/homelab | kubectl apply --server-side -f -
+docker network inspect kind --format '{{(index .IPAM.Config 0).Subnet}}'
+```
+
+Pick an unused range inside that subnet and set it in
+[infra/metallb/overlays/homelab/ipaddresspool.yaml](infra/metallb/overlays/homelab/ipaddresspool.yaml).
+
+### 2) Add a host route (Linux)
+
+Route the kind subnet via the kind bridge so your host can reach LoadBalancer IPs:
+
+```
+sudo ip route add <KIND_SUBNET> dev br-$(docker network inspect -f '{{.Id}}' kind | cut -c1-12)
+```
+
+Replace `<KIND_SUBNET>` with the subnet from step 1 (for example `10.89.1.0/24`).
+
+### 3) Optional: port-mapping instead of routing
+
+If you prefer local ports instead of routing, create the kind cluster with port mappings and use a `NodePort` or ingress controller. Example kind config:
+
+```
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 8080
+      - containerPort: 443
+        hostPort: 8443
+```
+
+Then reach your services at `http://localhost:8080` or `https://localhost:8443`.
+
+## Deploy the stack
+
+Apply the full stack with Kustomize (server-side apply avoids CRD annotation size limits). If your cluster already has resources created with client-side apply, use force conflicts to take ownership:
+
+```
+kustomize build --enable-helm clusters/homelab | kubectl apply --server-side --force-conflicts -f -
 ```
 
 Optional helper script:
@@ -52,6 +95,13 @@ Optional helper script:
 
 - MetalLB allocates LoadBalancer IPs for Traefik, Argo CD, and Grafana.
 - Use `kubectl get svc -A` to locate assigned IP addresses.
+- If you cannot reach a LoadBalancer IP on kind, use port-forwarding. Example for Grafana:
+
+```
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
+```
+
+Then open `http://localhost:3000`.
 
 ## GitOps with Argo CD
 
