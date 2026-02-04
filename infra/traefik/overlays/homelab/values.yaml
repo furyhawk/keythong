@@ -6,3 +6,10 @@ ingressRoute:
 logs:
   general:
     level: INFO
+ports:
+  web:
+    forwardedHeaders:
+      insecure: true
+  websecure:
+    forwardedHeaders:
+      insecure: true
